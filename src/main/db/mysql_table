@@ -1,0 +1,50 @@
+# 시퀀스 테이블 생성
+CREATE TABLE seq_board (
+    name varchar(32),
+    currentval bigint unsigned
+) engine = InnoDB;
+
+# 시퀀스 프로시저 생성
+DELIMITER $$
+    CREATE PROCEDURE  `create_sequence` (IN the_name text)
+    MODIFIES SQL DATA
+    DETERMINISTIC
+    BEGIN
+        DELETE FROM seq_board WHERE name = the_name;
+        INSERT INTO seq_board VALUES(the_name, 0);
+    END $$
+
+# 시퀀스 가져오는 함수 생성 (root 권한)
+DELIMITER $$
+    CREATE FUNCTION `nextval` (the_name VARCHAR(32))
+    RETURNS BIGINT UNSIGNED
+    MODIFIES SQL DATA
+    DETERMINISTIC
+    BEGIN
+        DECLARE ret BIGINT UNSIGNED;
+        UPDATE seq_board SET currentval = currentval + 1 WHERE name = the_name;
+        SELECT currentval INTO ret FROM seq_board WHERE name = the_name LIMIT 1;
+        RETURN ret;
+    END $$
+
+# 테이블 생성
+create table tbl_board (
+                           bno numeric(10,0),
+                           title varchar(200) not null,
+                           content varchar(2000) not null,
+                           writer varchar(50) not null,
+                           regdate datetime default current_timestamp,
+                           updatedate datetime default current_timestamp
+);
+
+# 테이블 변경
+alter table tbl_board add constraint pk_board
+    primary key (bno);
+
+
+
+# 값 넣어주기 (시퀀스 생성)
+call create_sequence('INSERT_SEQ');
+
+insert into tbl_board (bno, title, content, writer)
+values (nextval('INSERT_SEQ'), '테스트 제목', '테스트 내용', 'USER00');
